@@ -1,6 +1,12 @@
 #ifndef SERVCLI_H
 #	define SERVCLI_H
 
+/* 404 */
+void notfound(int fd, char *buf, char *time);
+
+/* get filepath in HTTP request */
+int getpath(const char *req, char *path);
+
 /* TCP_listen function */
 int tcp_listen(const char *port);
 

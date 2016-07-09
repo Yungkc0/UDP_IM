@@ -1,5 +1,37 @@
 #include "http.h"
 
+/* 404 */
+void notfound(int fd, char *buf, char *time)
+{
+	FILE *fp;
+
+	fp = fopen("www/404.html", "r");
+	sprintf(buf, "HTTP/1.1 404 Not Found\r\n"
+			"Date: %s\r\n"
+			"Server: Elder/1.0\r\n"
+			"Content-Length: %lu\r\n"
+			"Keep-Alive: timeout=5, max=98\r\n"
+			"Connection: Keep-Alive\r\n"
+			"Content-Type: text/html\r\n\r\n",
+			time, fsize("www/404.html"));
+	write(fd, buf, strlen(buf));
+	while (fgets(buf, MAXLINE, fp) != NULL)
+		write(fd, buf, strlen(buf));
+	fclose(fp);
+}
+
+/* get filepath in HTTP request */
+int getpath(const char *req, char *path)
+{
+	while (*++req != '/')
+		;
+	strcpy(path, "www");
+	sscanf(req, "%s", path + 3);
+	if (*req == '/' && *(req + 1) == ' ')
+		strcpy(path, "www/index.html");
+	return 0;
+}
+
 /* TCP_listen function */
 int
 tcp_listen(const char *port)

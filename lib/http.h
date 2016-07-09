@@ -22,9 +22,7 @@
 
 #define MAXLINE 1024
 #define TIMEBUF 40
-#define PWDSIZE 16
-#define NAMESIZE 16
-#define RANDSIZE 20
+#define PATHMAX 255
 #define LISTENQ 4096
 #define SERVPORT "8080"
 

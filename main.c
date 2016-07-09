@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	else if (argc == 1)
 		listenfd = tcp_listen(SERVPORT);
 	else
-		err_quit("usage: serv [port]");
+		err_quit("usage: http [port]");
 
 	if (pthread_mutex_init(&mutex, NULL) != 0)
 		err_sys("pthread_mutex_init error");
@@ -32,37 +32,49 @@ void *webchild(void *args)
 	int fd, maxfdp1;
 	off_t flen;
 	time_t t;
-	char buf[MAXLINE], timebuf[TIMEBUF];
+	char buf[MAXLINE], timebuf[TIMEBUF], filepath[PATHMAX];
 	FILE *fp;
 	fd_set rset;
-	struct timeval tvl = {0, 20};
+	struct timeval tvl = {0, 200};
 
-	fp = fopen("www/index.html", "r");
 	fd = *(int *) args;
-	FD_ZERO(&rset);
-	FD_SET(fd, &rset);
 	maxfdp1 = fd + 1;
-
-	w_select(maxfdp1, &rset, NULL, NULL, &tvl);
-	if (FD_ISSET(fd, &rset)) {
-		read(fd, buf, MAXLINE);
-		printf("%s", buf);
+	FD_ZERO(&rset);
+	for (; ; ) {
+		FD_SET(fd, &rset);
+		w_select(maxfdp1, &rset, NULL, NULL, &tvl);
+		if (FD_ISSET(fd, &rset)) {
+			read(fd, buf, MAXLINE);
+			printf("%s", buf);
+			if (getpath(buf, filepath) != 0)
+				break;
+			printf("~~>>>> %s\n\n", filepath);
+			t = time(NULL);
+			rfctime(timebuf, localtime(&t));
+			if ((fp = fopen(filepath, "r")) == NULL) {
+				if (errno == ENOENT) {
+					notfound(fd, buf, timebuf);
+					break;
+				}
+			}
+			if ((flen = fsize(filepath)) == -1)
+				err_quit("fsize error");
+			sprintf(buf, "HTTP/1.1 200 OK\r\n"
+				"Date: %s\r\n"
+				"Server: Elder\r\n"
+				"Content-length: %lu\r\n"
+				"Vary: Accept-Encoding\r\n"
+				"Connection: keep-alive\r\n"
+				"Content-Type: text/html\r\n\r\n",
+				timebuf, flen);
+			write(fd, buf, strlen(buf));
+			while (fgets(buf, MAXLINE, fp) != NULL)
+				write(fd, buf, strlen(buf));
+			fclose(fp);
+		} else {
+			break;
+		}
 	}
-	t = time(NULL);
-	rfctime(timebuf, localtime(&t));
-	if ((flen = fsize("www/index.html")) == -1)
-		err_quit("get index.html error");
-	sprintf(buf, "HTTP/1.1 200 OK\r\n"
-			"Date: %s\r\n"
-			"Server: Elder\r\n"
-			"Content-length: %lu\r\n"
-			"Vary: Accept-Encoding\r\n"
-			"Connection: close\r\n"
-			"Content-Type: text/html\r\n\r\n",
-			timebuf, flen);
-	write(fd, buf, strlen(buf));
-	while (fgets(buf, MAXLINE, fp) != NULL)
-		write(fd, buf, strlen(buf));
 	close(fd);
 
 	return args;

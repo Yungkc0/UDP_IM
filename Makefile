@@ -1,14 +1,13 @@
-# The top level Makefile
+include ./Make.defines
 
-all:	
-	cd Client 	&& $(MAKE)
-	cd Server	&& $(MAKE)
-	cd Client 	&& $(MAKE) clean
-	cd Server	&& $(MAKE) clean
-	@echo 
-	@echo "*********************************************"
-	@echo "All files Built"
-	@echo "Please move to exe/ directory"
-	@echo "*********************************************"
-	@echo
-	
+all: main.o
+	cd ${LIB_DIR} && make
+	${CC} -o ${PROG} $< ${LIBS}
+
+main.o: main.c
+	${CC} ${CFLAGS} -c $<
+
+.PHONY: clean
+clean:
+	cd ${LIB_DIR} && make clean
+	rm -f *.a ${CLEANFILES} ${PROG}

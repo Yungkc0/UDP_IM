@@ -1,35 +1,81 @@
 #include "http.h"
 
-/* 404 */
-void notfound(int fd, char *buf, char *time)
+/* get file suffix */
+static void getsuffix(const char *path, char *suffix)
 {
-	FILE *fp;
+	size_t size;
 
-	fp = fopen("www/404.html", "r");
-	sprintf(buf, "HTTP/1.1 404 Not Found\r\n"
-			"Date: %s\r\n"
-			"Server: Elder/1.0\r\n"
-			"Content-Length: %lu\r\n"
-			"Keep-Alive: timeout=5, max=98\r\n"
-			"Connection: Keep-Alive\r\n"
-			"Content-Type: text/html\r\n\r\n",
-			time, fsize("www/404.html"));
-	write(fd, buf, strlen(buf));
-	while (fgets(buf, MAXLINE, fp) != NULL)
-		write(fd, buf, strlen(buf));
-	fclose(fp);
+	size = strlen(path);
+	for (; size > 0; --size) {
+		if (path[size - 1] == '.') {
+			strcpy(suffix, path + size - 1);
+			return;
+		}
+	}
+	strcpy(suffix, "*");
+}
+
+/* get content-type of file */
+void getype(const char *path, char *type)
+{
+	int i;
+	char suffix[20];
+	static char *typelist[][2] = {
+		{"*", "application/octet-stream"},
+		{".html", "text/html"},
+		{".htm", "text/html"},
+		{".htx", "text/html"},
+		{".avi", "video/avi"},
+		{".bmp", "application/x-bmp"},
+		{".doc", "application/msword"},
+		{".dot", "application/msword"},
+		{".exe", "application/x-msdownload"},
+		{".fo", "text/xml"},
+		{".ico", "image/x-icon"},
+		{".img", "application/x-img"},
+		{".java", "java/*"},
+		{".jpg", "image/jpeg"},
+		{".jpeg", "image/jpeg"},
+		{".jsp", "text/html"},
+		{".mp2", "audio/mp2"},
+		{".mp3", "auido/mp3"},
+		{".mp4", "video/mpeg4"},
+		{".mpeg", "video/mpg"},
+		{".pdf", "application/pdf"},
+		{".png", "image/png"},
+		{".xhtml", "text/html"},
+		{".css", "text/css"},
+		{".xml", "text/xml"},
+		{".txt", "text/plain"},
+		{".js", "text/javascript"},
+		{".", "x-"},
+		{NULL, NULL},
+	};
+
+	getsuffix(path, suffix);
+	type[0] = 0;
+	for (i = 0; typelist[i][0] != NULL; ++i) {
+		if (!strcmp(typelist[i][0], suffix))
+			strcpy(type, typelist[i][1]);
+	}
+	if (!type[0])
+		strcpy(type, typelist[0][1]);
 }
 
 /* get filepath in HTTP request */
-int getpath(const char *req, char *path)
+FILE *getpath(const char *req, char *path)
 {
+	FILE *fp;
+
 	while (*++req != '/')
 		;
 	strcpy(path, "www");
 	sscanf(req, "%s", path + 3);
 	if (*req == '/' && *(req + 1) == ' ')
 		strcpy(path, "www/index.html");
-	return 0;
+	if ((fp = fopen(path, "r")) == NULL)
+		;
+	return fp;
 }
 
 /* TCP_listen function */
@@ -60,13 +106,6 @@ tcp_listen(const char *port)
 	return listenfd;
 }
 
-/* select() */
-void w_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
-{
-	if (select(nfds, readfds, writefds, exceptfds, timeout) < 0)
-		err_sys("select error");
-}
-
 /* fsize function */
 off_t fsize(const char *filename)
 {
@@ -91,4 +130,23 @@ void rfctime(char *s, const struct tm *tm)
 	snprintf(s, TIMEBUF, "%s, %02d %s %04d %02d:%02d:%02d GMT",
 			days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon - 1],
 			tm->tm_year, tm->tm_hour, tm->tm_min, tm->tm_sec);
+}
+
+/* wrapped functions */
+void w_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
+{
+	if (select(nfds, readfds, writefds, exceptfds, timeout) < 0)
+		err_sys("select error");
+}
+
+void w_write(int fd, const char *buf, size_t n)
+{
+	if (write(fd, buf, n) < 0)
+		err_sys("write error");
+}
+
+void w_read(int fd, char *buf, size_t n)
+{
+	if (read(fd, buf, n) < 0)
+		err_msg("read error");
 }

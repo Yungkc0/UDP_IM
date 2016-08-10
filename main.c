@@ -1,11 +1,9 @@
 #include "lib/http.h"
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int main(int argc, char **argv)
 {
 	int listenfd, connfd;
-	void *webchild(void *);
-	pthread_t tid;
+	void webchild(int);
 	socklen_t addrlen;
 	struct sockaddr_in cliaddr;
 
@@ -16,66 +14,48 @@ int main(int argc, char **argv)
 	else
 		err_quit("usage: http [port]");
 
-	if (pthread_mutex_init(&mutex, NULL) != 0)
-		err_sys("pthread_mutex_init error");
-
 	for (; ; ) {
 		if ((connfd = accept(listenfd, (SA *) &cliaddr, &addrlen)) < 0)
 			err_sys("accept error");
-		if (pthread_create(&tid, NULL, webchild, (void *) &connfd) != 0)
-			err_sys("pthread_create error");
+		webchild(connfd);
 	}
 }
 
-void *webchild(void *args)
+void webchild(int fd)
 {
-	int fd, maxfdp1;
+	size_t nbytes;
 	off_t flen;
 	time_t t;
-	char buf[MAXLINE], timebuf[TIMEBUF], filepath[PATHMAX];
+	char buf[MAXLINE], timebuf[TIMEBUF];
+	char filepath[PATHMAX], type[50];
 	FILE *fp;
-	fd_set rset;
-	struct timeval tvl = {0, 200};
 
-	fd = *(int *) args;
-	maxfdp1 = fd + 1;
-	FD_ZERO(&rset);
-	for (; ; ) {
-		FD_SET(fd, &rset);
-		w_select(maxfdp1, &rset, NULL, NULL, &tvl);
-		if (FD_ISSET(fd, &rset)) {
-			read(fd, buf, MAXLINE);
-			printf("%s", buf);
-			if (getpath(buf, filepath) != 0)
-				break;
-			printf("~~>>>> %s\n\n", filepath);
-			t = time(NULL);
-			rfctime(timebuf, localtime(&t));
-			if ((fp = fopen(filepath, "r")) == NULL) {
-				if (errno == ENOENT) {
-					notfound(fd, buf, timebuf);
-					break;
-				}
-			}
-			if ((flen = fsize(filepath)) == -1)
-				err_quit("fsize error");
-			sprintf(buf, "HTTP/1.1 200 OK\r\n"
-				"Date: %s\r\n"
-				"Server: Elder\r\n"
-				"Content-length: %lu\r\n"
-				"Vary: Accept-Encoding\r\n"
-				"Connection: keep-alive\r\n"
-				"Content-Type: text/html\r\n\r\n",
-				timebuf, flen);
-			write(fd, buf, strlen(buf));
-			while (fgets(buf, MAXLINE, fp) != NULL)
-				write(fd, buf, strlen(buf));
-			fclose(fp);
-		} else {
-			break;
+	memset(buf, 0, MAXLINE);
+	w_read(fd, buf, MAXLINE);
+	t = time(NULL);      /* time for 'Date' header */
+	rfctime(timebuf, localtime(&t));
+	if ((fp = getpath(buf, filepath)) == NULL) {
+		if (errno == ENOENT) {
+			status(404, fd, buf, timebuf);
+			return;
 		}
 	}
-	close(fd);
 
-	return args;
+	getype(filepath, type);
+	if ((flen = fsize(filepath)) == -1)
+		err_quit("fsize error");
+	sprintf(buf, "HTTP/1.1 200 OK\r\n"
+		"Date: %s\r\n"
+		"Server: Elder/%s\r\n"
+		"Content-length: %lu\r\n"
+		"Vary: Accept-Encoding\r\n"
+		"Connection: close\r\n"
+		"Content-Type: %s\r\n\r\n",
+		timebuf, VERSION, flen, type);
+	w_write(fd, buf, strlen(buf));
+	while ((nbytes = fread(buf, 1, MAXLINE, fp)) != 0)
+		w_write(fd, buf, nbytes);
+	fclose(fp);
+
+	close(fd);
 }

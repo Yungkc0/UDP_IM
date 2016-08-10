@@ -19,12 +19,16 @@
 #include <arpa/inet.h>
 #include "err.h"
 #include "server.h"
+#include "status.h"
 
-#define MAXLINE 1024
-#define TIMEBUF 40
-#define PATHMAX 255
-#define LISTENQ 4096
+#define MAXLINE  1024
+#define TIMEBUF  40
+#define PATHMAX  255
+#define LISTENQ  4096
 #define SERVPORT "8080"
+
+#define VERSION "2.0"
+#define AUTHOR  "yungkcx"
 
 #define SA struct sockaddr
 

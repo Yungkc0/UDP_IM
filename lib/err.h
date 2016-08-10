@@ -1,5 +1,5 @@
-#ifndef IMERR_H
-# define IMERR_H
+#ifndef ERR_H
+# define ERR_H
 
 void err_ret(const char *fmt, ...);
 

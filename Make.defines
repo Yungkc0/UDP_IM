@@ -4,7 +4,7 @@ LIBS = libhttp.a -pthread
 RANLIB = ranlib
 
 LIBIM_NAME = ../libhttp.a
-LIB_OBJS = err.o server.o
+LIB_OBJS = err.o server.o status.o
 LIB_DIR = lib
 PROG = http
 

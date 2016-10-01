@@ -3,9 +3,11 @@
 int main(int argc, char **argv)
 {
 	int listenfd, connfd;
+    pid_t pid;
 	void webchild(int);
 	socklen_t addrlen;
 	struct sockaddr_in cliaddr;
+    char peeraddr[30];
 
 	if (argc == 2)
 		listenfd = tcp_listen(argv[1]);
@@ -14,10 +16,20 @@ int main(int argc, char **argv)
 	else
 		err_quit("usage: http [port]");
 
+    addrlen = sizeof(struct sockaddr_in);
 	for (; ; ) {
 		if ((connfd = accept(listenfd, (SA *) &cliaddr, &addrlen)) < 0)
 			err_sys("accept error");
-		webchild(connfd);
+        printf("from %s:%hu\n", inet_ntop(AF_INET, &cliaddr.sin_addr.s_addr, peeraddr, sizeof(peeraddr)), ntohs(cliaddr.sin_port));
+        if ((pid = fork()) == 0) {
+		    webchild(connfd);
+            exit(0);
+        } else if (pid > 0) {
+            if (close(connfd) < 0)
+                err_sys("close error");
+        } else {
+            err_sys("fork error");
+        }
 	}
 }
 

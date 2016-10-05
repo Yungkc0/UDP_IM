@@ -147,7 +147,9 @@ ssize_t w_write(int fd, const char *buf, size_t n)
 		if ((nwrite = write(fd, buf, n)) < 0) {
 			if (errno == EINTR) {
 				nwrite = 0;
-			} else {
+			} else if (errno == EPIPE) {
+                break;
+            } else {
 				err_sys("w_write error");
 				return -1;
 			}

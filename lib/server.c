@@ -144,9 +144,7 @@ ssize_t w_write(int fd, const char *buf, size_t n)
 	ssize_t nwrite;
 
 	while (1) {
-        err_msg("ok3");
 		if ((nwrite = write(fd, buf, n)) < 0) {
-            err_msg("ok2");
 			if (errno == EINTR) {
 				nwrite = 0;
 			} else {
@@ -154,7 +152,6 @@ ssize_t w_write(int fd, const char *buf, size_t n)
 				return -1;
 			}
 		} else {
-        err_msg("ok1");
 			break;
 		}
 	}

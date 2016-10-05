@@ -139,14 +139,40 @@ void w_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, st
 		err_sys("select error");
 }
 
-void w_write(int fd, const char *buf, size_t n)
+ssize_t w_write(int fd, const char *buf, size_t n)
 {
-	if (write(fd, buf, n) < 0)
-		err_sys("write error");
+	ssize_t nwrite;
+
+	while (1) {
+		if ((nwrite = write(fd, buf, n)) < 0) {
+			if (errno == EINTR) {
+				nwrite = 0;
+			} else {
+				perror("writen error");
+				return -1;
+			}
+		} else {
+			break;
+		}
+	}
+	return nwrite;
 }
 
-void w_read(int fd, char *buf, size_t n)
+ssize_t w_read(int fd, char *buf, size_t n)
 {
-	if (read(fd, buf, n) < 0)
-		err_msg("read error");
+	ssize_t nread;
+
+	while (1) {
+		if ((nread = read(fd, buf, n)) < 0) {
+			if (errno == EINTR) {
+				nread = 0;
+			} else {
+				perror("readn error");
+				return -1;
+			}
+		} else {
+			break;
+		}
+	}
+	return nread;
 }

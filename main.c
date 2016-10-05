@@ -21,15 +21,8 @@ int main(int argc, char **argv)
 		if ((connfd = accept(listenfd, (SA *) &cliaddr, &addrlen)) < 0)
 			err_sys("accept error");
         printf("from %s:%hu\n", inet_ntop(AF_INET, &cliaddr.sin_addr.s_addr, peeraddr, sizeof(peeraddr)), ntohs(cliaddr.sin_port));
-        if ((pid = fork()) == 0) {
-		    webchild(connfd);
-            exit(0);
-        } else if (pid > 0) {
-            if (close(connfd) < 0)
-                err_sys("close error");
-        } else {
-            err_sys("fork error");
-        }
+        printf("%d\n", connfd);
+        webchild(connfd);
 	}
 }
 

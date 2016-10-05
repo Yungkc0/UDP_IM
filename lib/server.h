@@ -17,8 +17,8 @@ void rfctime(char *s, const struct tm *tm);
 int tcp_listen(const char *port);
 
 /* wrapped functions */
-void w_read(int fd, char *buf, size_t n);
-void w_write(int fd, const char *buf, size_t n);
+ssize_t w_read(int fd, char *buf, size_t n);
+ssize_t w_write(int fd, const char *buf, size_t n);
 void w_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 
 #endif

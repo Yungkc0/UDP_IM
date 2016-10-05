@@ -28,8 +28,10 @@ static void s_404(int sfd, int fd, char *buf, char *timebuf)
 			"Content-Type: text/html\r\n\r\n",
 			timebuf, VERSION, fsize("www/404.html"));
 	w_write(fd, buf, strlen(buf));
-	while (w_read(sfd, buf, MAXLINE) > 0)
+	while (w_read(sfd, buf, MAXLINE) > 0) {
 		w_write(fd, buf, strlen(buf));
+        memset(buf, 0, MAXLINE);
+    }
     close(sfd);
 	close(fd);
 }

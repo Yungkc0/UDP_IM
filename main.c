@@ -1,12 +1,13 @@
 #include "lib/http.h"
 
+void webchild(int);
+void sigpipe(int);
 int main(int argc, char **argv)
 {
 	int listenfd, connfd;
-    pid_t pid;
-	void webchild(int);
 	socklen_t addrlen;
 	struct sockaddr_in cliaddr;
+    struct sigaction sa;
     char peeraddr[30];
 
 	if (argc == 2)
@@ -16,14 +17,21 @@ int main(int argc, char **argv)
 	else
 		err_quit("usage: http [port]");
 
+    sa.sa_flags = 0;
+    sa.sa_handler = sigpipe;
+    sigaction(SIGPIPE, &sa, NULL);
     addrlen = sizeof(struct sockaddr_in);
 	for (; ; ) {
 		if ((connfd = accept(listenfd, (SA *) &cliaddr, &addrlen)) < 0)
 			err_sys("accept error");
         printf("from %s:%hu\n", inet_ntop(AF_INET, &cliaddr.sin_addr.s_addr, peeraddr, sizeof(peeraddr)), ntohs(cliaddr.sin_port));
-        printf("%d\n", connfd);
         webchild(connfd);
 	}
+}
+
+void sigpipe(int signo)
+{
+    return;
 }
 
 void webchild(int fd)

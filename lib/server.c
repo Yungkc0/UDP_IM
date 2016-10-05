@@ -144,14 +144,17 @@ ssize_t w_write(int fd, const char *buf, size_t n)
 	ssize_t nwrite;
 
 	while (1) {
+        err_msg("ok3");
 		if ((nwrite = write(fd, buf, n)) < 0) {
+            err_msg("ok2");
 			if (errno == EINTR) {
 				nwrite = 0;
 			} else {
-				perror("writen error");
+				err_sys("w_write error");
 				return -1;
 			}
 		} else {
+        err_msg("ok1");
 			break;
 		}
 	}
@@ -167,7 +170,7 @@ ssize_t w_read(int fd, char *buf, size_t n)
 			if (errno == EINTR) {
 				nread = 0;
 			} else {
-				perror("readn error");
+				perror("w_read error");
 				return -1;
 			}
 		} else {

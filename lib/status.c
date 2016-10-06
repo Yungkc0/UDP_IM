@@ -1,23 +1,28 @@
 #include "http.h"
 
-static void s_404(int, int, char *, char *);
+static void s_404(FILE *, int, char *, char *);
 
 /* execute status function */
 void status(int code, int fd, char *buf, char *timebuf)
 {
-    int sfd;
+    FILE *fp;
 
+    fp = NULL;
 	switch(code) {
 		case 404:
-			sfd = open("www/status/404.html", O_RDONLY);
-			s_404(sfd, fd, buf, timebuf);
+			fp = fopen("www/status/404.html", "r");
+            if (fp == NULL)
+                err_sys("fopen error");
+			s_404(fp, fd, buf, timebuf);
 			break;
 		default:
 			;
 	}
+    if (fp)
+        fclose(fp);
 }
 
-static void s_404(int sfd, int fd, char *buf, char *timebuf)
+static void s_404(FILE *fp, int fd, char *buf, char *timebuf)
 {
 	sprintf(buf, "HTTP/1.1 404 Not Found\r\n"
 			"Date: %s\r\n"
@@ -28,10 +33,8 @@ static void s_404(int sfd, int fd, char *buf, char *timebuf)
 			"Content-Type: text/html\r\n\r\n",
 			timebuf, VERSION, fsize("www/404.html"));
 	w_write(fd, buf, strlen(buf));
-	while (w_read(sfd, buf, MAXLINE) > 0) {
+	while (fgets(buf, MAXLINE, fp) != NULL)
 		w_write(fd, buf, strlen(buf));
-        memset(buf, 0, MAXLINE);
-    }
-    close(sfd);
+
 	close(fd);
 }

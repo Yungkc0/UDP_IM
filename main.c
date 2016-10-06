@@ -24,7 +24,8 @@ int main(int argc, char **argv)
 	for (; ; ) {
 		if ((connfd = accept(listenfd, (SA *) &cliaddr, &addrlen)) < 0)
 			err_sys("accept error");
-        printf("from %s:%hu\n", inet_ntop(AF_INET, &cliaddr.sin_addr.s_addr, peeraddr, sizeof(peeraddr)), ntohs(cliaddr.sin_port));
+        printf("from %s:%hu\n", inet_ntop(AF_INET, &cliaddr.sin_addr.s_addr,
+                    peeraddr, sizeof(peeraddr)), ntohs(cliaddr.sin_port));
         webchild(connfd);
 	}
 }

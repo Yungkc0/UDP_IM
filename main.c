@@ -1,10 +1,11 @@
 #include "lib/http.h"
 
-void webchild(int);
+void *webchild(void *);
 void sigpipe(int);
 int main(int argc, char **argv)
 {
 	int listenfd, connfd;
+    pthread_t tid;
 	socklen_t addrlen;
 	struct sockaddr_in cliaddr;
     struct sigaction sa;
@@ -24,9 +25,10 @@ int main(int argc, char **argv)
 	for (; ; ) {
 		if ((connfd = accept(listenfd, (SA *) &cliaddr, &addrlen)) < 0)
 			err_sys("accept error");
-        printf("from %s:%hu\n", inet_ntop(AF_INET, &cliaddr.sin_addr.s_addr,
-                    peeraddr, sizeof(peeraddr)), ntohs(cliaddr.sin_port));
-        webchild(connfd);
+        printf("from %s:%hu\n",
+                inet_ntop(AF_INET, &cliaddr.sin_addr.s_addr, peeraddr, sizeof(peeraddr)), ntohs(cliaddr.sin_port));
+        pthread_create(&tid, NULL, webchild, (void *) connfd);
+        pthread_detach(tid);
 	}
 }
 
@@ -35,8 +37,9 @@ void sigpipe(int signo)
     return;
 }
 
-void webchild(int fd)
+void *webchild(void *args)
 {
+    int fd;
 	size_t nbytes;
 	off_t flen;
 	time_t t;
@@ -44,6 +47,7 @@ void webchild(int fd)
 	char filepath[PATHMAX], type[50];
 	FILE *fp;
 
+    fd = (int) args;
 	memset(buf, 0, MAXLINE);
 	w_read(fd, buf, MAXLINE);
 	t = time(NULL);      /* time for 'Date' header */
@@ -51,7 +55,7 @@ void webchild(int fd)
 	if ((fp = getpath(buf, filepath)) == NULL) {
 		if (errno == ENOENT) {
 			status(404, fd, buf, timebuf);
-			return;
+			return NULL;
 		}
 	}
 
@@ -69,7 +73,9 @@ void webchild(int fd)
 	w_write(fd, buf, strlen(buf));
 	while ((nbytes = fread(buf, 1, MAXLINE, fp)) != 0)
 		w_write(fd, buf, nbytes);
-	fclose(fp);
 
+	fclose(fp);
 	close(fd);
+
+    return NULL;
 }

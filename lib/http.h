@@ -29,7 +29,7 @@
 #define LISTENQ  4096
 #define SERVPORT "8080"
 
-#define VERSION "2.0"
+#define VERSION "3.0"
 #define AUTHOR  "yungkcx"
 
 #define SA struct sockaddr
